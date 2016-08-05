@@ -17,6 +17,7 @@
     WebIntent.prototype.ACTION_CALL = "android.intent.action.CALL";
     WebIntent.prototype.ACTION_SENDTO = "android.intent.action.SENDTO";
     WebIntent.prototype.ACTION_PICK = "android.intent.action.PICK";
+    WebIntent.prototype.ACTION_OPEN_DOCUMENT = "android.intent.action.OPEN_DOCUMENT";
 
     WebIntent.prototype.startActivity = function(params, success, fail) {
         return cordova.exec(function(args) {
