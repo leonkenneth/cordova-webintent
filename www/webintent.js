@@ -27,6 +27,14 @@
         }, 'WebIntent', 'startActivity', [params]);
     };
 
+    WebIntent.prototype.startActivityForResult = function(params, success, fail) {
+        return cordova.exec(function(args) {
+            success(args);
+        }, function(args) {
+            fail(args);
+        }, 'WebIntent', 'startActivityForResult', [params]);
+    };
+
     WebIntent.prototype.hasExtra = function(params, success, fail) {
         return cordova.exec(function(args) {
             success(args);

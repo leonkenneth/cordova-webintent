@@ -8,6 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.Html;
@@ -17,18 +18,9 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaResourceApi;
 import org.apache.cordova.PluginResult;
 
-/**
- * WebIntent is a PhoneGap plugin that bridges Android intents and web
- * applications:
- * 
- * 1. web apps can spawn intents that call native Android applications. 2.
- * (after setting up correct intent filters for PhoneGap applications), Android
- * intents can be handled by PhoneGap web applications.
- * 
- * @author boris@borismus.com
- * 
- */
 public class WebIntent extends CordovaPlugin {
+    private static Map<Integer, CallbackContext> activityResultsMap = new HashMap<Integer, CallbackContext>();
+    private static int nextRequestId = 0;
 
     private CallbackContext onNewIntentCallbackContext = null;
 
@@ -37,7 +29,7 @@ public class WebIntent extends CordovaPlugin {
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
         try {
 
-            if (action.equals("startActivity")) {
+            if (action.equals("startActivityForResult")) {
                 if (args.length() != 1) {
                     //return new PluginResult(PluginResult.Status.INVALID_ACTION);
                     callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.INVALID_ACTION));
@@ -62,9 +54,11 @@ public class WebIntent extends CordovaPlugin {
                     }
                 }
 
-                startActivity(obj.getString("action"), uri, type, extrasMap);
                 //return new PluginResult(PluginResult.Status.OK);
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
+                PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
+                result.setKeepCallback(true);
+                callbackContext.sendPluginResult(result);
+                startActivityForResult(obj.getString("action"), uri, type, extrasMap, callbackContext);
                 return true;
 
             } else if (action.equals("hasExtra")) {
@@ -173,8 +167,11 @@ public class WebIntent extends CordovaPlugin {
         }
     }
 
-    void startActivity(String action, Uri uri, String type, Map<String, String> extras) {
-        Intent i = (uri != null ? new Intent(action, uri) : new Intent(action));
+    void startActivityForResult(String action, Uri uri, String type, Map<String, String> extras, CallbackContext callbackContext) {
+        nextRequestId = nextRequestId + 1;
+        int requestId = nextRequestId;
+        activityResultsMap.put(requestId, callbackContext);
+        Intent i = new Intent(action);
         
         if (type != null && uri != null) {
             i.setDataAndType(uri, type); //Fix the crash problem with android 2.3.6
@@ -201,7 +198,21 @@ public class WebIntent extends CordovaPlugin {
                 i.putExtra(key, value);
             }
         }
-        ((CordovaActivity)this.cordova.getActivity()).startActivity(i);
+        ((CordovaActivity)this.cordova.getActivity()).startActivityForResult(i, requestId);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+      CallbackContext callbackContext = activityResultsMap.get(requestCode);
+      PluginResult result = new PluginResult(PluginResult.Status.OK, "lol");
+      result.setKeepCallback(false);
+      callbackContext.sendPluginResult(result);
+      // if (activityResultsMap.containsKey(requestCode)) {
+      //   if (resultCode == Activity.RESULT_OK) {
+      //     CallbackContext callbackContext = activityResultsMap.get(requestCode);
+      //     String uri = data.getData().toString();
+      //   }
+      // }
     }
 
     void sendBroadcast(String action, Map<String, String> extras) {
